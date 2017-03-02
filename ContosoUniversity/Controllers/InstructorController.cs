@@ -9,6 +9,7 @@ using System.Web.Mvc;
 using ContosoUniversity.DAL;
 using ContosoUniversity.Models;
 using ContosoUniversity.ViewModels;
+using System.Data.Entity.Infrastructure;
 
 namespace ContosoUniversity.Controllers
 {
@@ -61,7 +62,7 @@ namespace ContosoUniversity.Controllers
         // GET: Instructor/Create
         public ActionResult Create()
         {
-            ViewBag.ID = new SelectList(db.OfficeAssignments, "InstructorID", "Location");
+           // ViewBag.ID = new SelectList(db.OfficeAssignments, "InstructorID", "Location");
             return View();
         }
 
@@ -70,7 +71,7 @@ namespace ContosoUniversity.Controllers
         // more details see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult Create([Bind(Include = "ID,LastName,FirstMidName,HireDate")] Instructor instructor)
+        public ActionResult Create([Bind(Include = "ID,LastName,FirstMidName,HireDate,OfficeAssignment")] Instructor instructor)
         {
             if (ModelState.IsValid)
             {
@@ -79,7 +80,7 @@ namespace ContosoUniversity.Controllers
                 return RedirectToAction("Index");
             }
 
-            ViewBag.ID = new SelectList(db.OfficeAssignments, "InstructorID", "Location", instructor.ID);
+            //ViewBag.ID = new SelectList(db.OfficeAssignments, "InstructorID", "Location", instructor.ID);
             return View(instructor);
         }
 
@@ -90,45 +91,80 @@ namespace ContosoUniversity.Controllers
             {
                 return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
             }
-            Instructor instructor = db.Instructors.Find(id);
+            // Instructor instructor = db.Instructors.Find(id);
+            Instructor instructor = db.Instructors.Include(i => i.OfficeAssignment).Where(i => i.ID == id).Single();
             if (instructor == null)
             {
                 return HttpNotFound();
             }
-            ViewBag.ID = new SelectList(db.OfficeAssignments, "InstructorID", "Location", instructor.ID);
+        //    ViewBag.ID = new SelectList(db.OfficeAssignments, "InstructorID", "Location", instructor.ID);
             return View(instructor);
         }
 
         // POST: Instructor/Edit/5
         // To protect from overposting attacks, please enable the specific properties you want to bind to, for 
         // more details see http://go.microsoft.com/fwlink/?LinkId=317598.
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public ActionResult Edit([Bind(Include = "ID,LastName,FirstMidName,HireDate")] Instructor instructor)
-        {
-            if (ModelState.IsValid)
-            {
-                db.Entry(instructor).State = EntityState.Modified;
-                db.SaveChanges();
-                return RedirectToAction("Index");
-            }
-            ViewBag.ID = new SelectList(db.OfficeAssignments, "InstructorID", "Location", instructor.ID);
-            return View(instructor);
-        }
+        //[HttpPost]
+        //[ValidateAntiForgeryToken]
+        //public ActionResult Edit([Bind(Include = "ID,LastName,FirstMidName,HireDate")] Instructor instructor)
+        //{
+        //    if (ModelState.IsValid)
+        //    {
+        //        db.Entry(instructor).State = EntityState.Modified;
+        //        db.SaveChanges();
+        //        return RedirectToAction("Index");
+        //    }
+        //    ViewBag.ID = new SelectList(db.OfficeAssignments, "InstructorID", "Location", instructor.ID);
+        //    return View(instructor);
+        //}
 
-        // GET: Instructor/Delete/5
-        public ActionResult Delete(int? id)
+        //// GET: Instructor/Delete/5
+        //public ActionResult Delete(int? id)
+        //{
+        //    if (id == null)
+        //    {
+        //        return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
+        //    }
+        //    Instructor instructor = db.Instructors.Find(id);
+        //    if (instructor == null)
+        //    {
+        //        return HttpNotFound();
+        //    }
+        //    return View(instructor);
+        //}
+
+        [HttpPost, ActionName("Edit")]
+        [ValidateAntiForgeryToken]
+        public ActionResult EditPost(int? id)
         {
             if (id == null)
             {
                 return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
             }
-            Instructor instructor = db.Instructors.Find(id);
-            if (instructor == null)
+
+            var instructorToUpdate = db.Instructors.Include(i => i.OfficeAssignment).Where(i => i.ID == id).Single();
+
+            if (TryUpdateModel(instructorToUpdate, "", new string[] { "LastName","Firstname","HireDate","OfficeAssignment"}))
             {
-                return HttpNotFound();
+                try
+                {
+                    if(String.IsNullOrWhiteSpace(instructorToUpdate.OfficeAssignment.Location))
+                    {
+                        instructorToUpdate.OfficeAssignment = null;
+                    }
+
+                    db.SaveChanges();
+
+                    return RedirectToAction("Index");
+                }
+                catch (RetryLimitExceededException /* dex */)
+                {
+                    ModelState.AddModelError("", "Unable to save changes. Try again, and if the problem persists, see your system administrator.");
+
+                }
             }
-            return View(instructor);
+            return View(instructorToUpdate);
+
         }
 
         // POST: Instructor/Delete/5
