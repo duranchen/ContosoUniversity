@@ -23,6 +23,9 @@
         <th>
             Office
         </th>
+        <th>
+            Course
+        </th>
         <th></th>
     </tr>
 
@@ -47,6 +50,17 @@
             {
                 @item.OfficeAssignment.Location
             }
+        </td>
+        <td>
+            @if(item.Courses != null)
+            {
+                foreach( var course in item.Courses)
+                {
+                    @course.CourseID @: @course.Title
+                    <br />
+                }
+            }
+            
         </td>
         <td>
             @Html.ActionLink("Select","Index",new { id = item.ID })
